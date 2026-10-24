@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A current snapshot of project ownership, status, activity, and priority.">
+    <title>Project Pulse</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="dashboard" id="dashboard">
+      <header class="dashboard-header">
+        <div class="dashboard-heading">
+          <p class="dashboard-eyebrow">Team overview</p>
+          <h1 class="dashboard-title">Project Pulse</h1>
+          <p class="dashboard-description">
+            A clear snapshot of what the team is building, who owns it, and where attention is needed.
+          </p>
+        </div>
+      </header>
+
+      <section class="dashboard-metrics" aria-label="Project summary">
+        <div class="dashboard-metric">
+          <span class="dashboard-metric-value" id="metric-total">—</span>
+          <span class="dashboard-metric-label">Total projects</span>
+        </div>
+        <div class="dashboard-metric">
+          <span class="dashboard-metric-value" id="metric-active">—</span>
+          <span class="dashboard-metric-label">Active projects</span>
+        </div>
+        <div class="dashboard-metric">
+          <span class="dashboard-metric-value" id="metric-high-priority">—</span>
+          <span class="dashboard-metric-label">High priority</span>
+        </div>
+      </section>
+
+      <section aria-labelledby="projects-heading" id="project-content" aria-busy="true">
+        <div class="project-section-header">
+          <h2 class="project-section-title" id="projects-heading">Projects</h2>
+          <p class="project-section-note" id="project-count">Loading project data…</p>
+        </div>
+        <div class="project-grid" id="project-grid"></div>
+        <p class="empty-state" id="dashboard-state" role="status">Loading project data…</p>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        const projectGrid = document.getElementById("project-grid");
+        const dashboardState = document.getElementById("dashboard-state");
+        const projectContent = document.getElementById("project-content");
+        const projectCount = document.getElementById("project-count");
+
+        function displayValue(value, fallback) {
+          if (typeof value === "string" && value.trim()) {
+            return value.trim();
+          }
+          if (typeof value === "number" && Number.isFinite(value)) {
+            return String(value);
+          }
+          return fallback;
+        }
+
+        function classToken(value) {
+          return displayValue(value, "")
+            .toLowerCase()
+            .trim()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "");
+        }
+
+        function makeTextElement(tagName, className, text) {
+          const element = document.createElement(tagName);
+          element.className = className;
+          element.textContent = text;
+          return element;
+        }
+
+        function createProjectCard(project) {
+          const record = project && typeof project === "object" ? project : {};
+          const name = displayValue(record.name, "Untitled project");
+          const owner = displayValue(record.owner, "Owner not assigned");
+          const status = displayValue(record.status, "Status unavailable");
+          const activity = displayValue(record.recentActivity, "No recent activity reported.");
+          const priority = displayValue(record.priority, "Priority not set");
+          const summary = displayValue(record.summary, "No summary provided.");
+          const statusToken = classToken(status);
+          const priorityToken = classToken(priority);
+
+          const card = document.createElement("article");
+          card.className = "project-card";
+          if (priorityToken) {
+            card.classList.add(`priority-${priorityToken}`);
+            card.dataset.priority = priorityToken;
+          }
+
+          const header = document.createElement("header");
+          header.className = "project-card-header";
+          header.append(makeTextElement("h3", "project-card-title", name));
+
+          const badges = document.createElement("div");
+          badges.className = "project-card-meta";
+          const statusBadge = makeTextElement("span", "project-status", status);
+          if (statusToken) {
+            statusBadge.classList.add(`status-${statusToken}`);
+            statusBadge.dataset.status = statusToken;
+          }
+          const priorityBadge = makeTextElement("span", "project-priority", `Priority: ${priority}`);
+          if (priorityToken) {
+            priorityBadge.classList.add(`priority-${priorityToken}`);
+            priorityBadge.dataset.priority = priorityToken;
+          }
+          badges.append(statusBadge, priorityBadge);
+          header.append(badges);
+          card.append(header);
+
+          card.append(makeTextElement("p", "project-summary", summary));
+
+          const details = document.createElement("div");
+          details.className = "project-details";
+
+          const ownerBlock = document.createElement("div");
+          ownerBlock.className = "project-owner";
+          ownerBlock.append(
+            makeTextElement("span", "project-owner-label", "Owner"),
+            makeTextElement("span", "project-owner-name", owner)
+          );
+
+          const activityBlock = document.createElement("div");
+          activityBlock.className = "project-activity";
+          activityBlock.append(
+            makeTextElement("span", "project-activity-label", "Recent activity"),
+            makeTextElement("p", "project-activity-text", activity)
+          );
+
+          details.append(ownerBlock, activityBlock);
+          card.append(details);
+          return card;
+        }
+
+        function setMetric(id, value) {
+          document.getElementById(id).textContent = String(value);
+        }
+
+        function showState(message, isError) {
+          dashboardState.textContent = message;
+          dashboardState.className = isError ? "dashboard-error" : "empty-state";
+          dashboardState.setAttribute("role", isError ? "alert" : "status");
+          dashboardState.hidden = false;
+        }
+
+        async function loadProjects() {
+          try {
+            const response = await fetch("project-data.json");
+            if (!response.ok) {
+              throw new Error(`Project data request failed (${response.status}).`);
+            }
+
+            const data = await response.json();
+            if (!data || !Array.isArray(data.projects)) {
+              throw new Error("Project data must contain a projects array.");
+            }
+
+            const projects = data.projects;
+            setMetric("metric-total", projects.length);
+            setMetric(
+              "metric-active",
+              projects.filter((project) => ["active", "in-progress", "on-track"].includes(classToken(project && project.status))).length
+            );
+            setMetric(
+              "metric-high-priority",
+              projects.filter((project) => classToken(project && project.priority) === "high").length
+            );
+
+            projectGrid.replaceChildren(...projects.map(createProjectCard));
+            projectContent.setAttribute("aria-busy", "false");
+            if (projects.length === 0) {
+              projectCount.textContent = "0 projects";
+              showState("No projects to show yet.", false);
+              return;
+            }
+
+            projectCount.textContent = `${projects.length} ${projects.length === 1 ? "project" : "projects"}`;
+            dashboardState.hidden = true;
+          } catch (error) {
+            projectContent.setAttribute("aria-busy", "false");
+            projectCount.textContent = "Project data unavailable";
+            showState(
+              `Unable to load project data. ${error instanceof Error ? error.message : "Please try again later."}`,
+              true
+            );
+          }
+        }
+
+        loadProjects();
+      })();
+    </script>
+  </body>
+</html>

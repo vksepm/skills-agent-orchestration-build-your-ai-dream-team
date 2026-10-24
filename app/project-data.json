@@ -1,0 +1,36 @@
+{
+  "projects": [
+    {
+      "name": "Contributor Onboarding Refresh",
+      "owner": "Maya Chen",
+      "status": "Active",
+      "recentActivity": "Published the revised setup guide and gathered feedback from three new contributors.",
+      "priority": "High",
+      "summary": "Make the first contribution easier with clearer setup steps and a friendlier project tour."
+    },
+    {
+      "name": "Insights Dashboard",
+      "owner": "Jordan Patel",
+      "status": "At Risk",
+      "recentActivity": "The analytics API contract is still under review; a decision is needed before integration can continue.",
+      "priority": "High",
+      "summary": "Bring key product adoption and engagement signals into one easy-to-scan view."
+    },
+    {
+      "name": "Accessibility Foundations",
+      "owner": "Avery Brooks",
+      "status": "Planning",
+      "recentActivity": "Completed an initial keyboard-navigation audit and drafted the remediation backlog.",
+      "priority": "Medium",
+      "summary": "Improve keyboard access, semantic structure, and assistive-technology support across core flows."
+    },
+    {
+      "name": "Release Notes Automation",
+      "owner": "Sam Rivera",
+      "status": "Completed",
+      "recentActivity": "Shipped the automated release-note workflow and documented how maintainers can update it.",
+      "priority": "Low",
+      "summary": "Reduce release-day overhead by assembling clear notes from merged changes."
+    }
+  ]
+}
